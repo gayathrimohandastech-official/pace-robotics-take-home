@@ -2,7 +2,7 @@
 scripts/generate_outputs.py
 Generates the three required deliverable outputs:
   1. output/trajectory_plot.png -- GT vs slipping odom vs fused estimate
-  2. output/run_log.txt -- timestamped covariance + degeneracy warnings
+  2. output/run_log.txt -- timestamped state covariance MATRICES + degeneracy warnings
   3. output/simulation_video.mp4 -- animated run (wall shift + robot response)
 """
 
@@ -22,7 +22,6 @@ def make_trajectory_plot(result, out_path="output/trajectory_plot.png"):
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
-    # Top-down X-Y view (kept for completeness, but the real story is in ax2)
     ax1.plot(data["x_true"], data["y_true"], label="Ground truth", linewidth=2, color="black")
     ax1.plot(result["raw_x"], result["raw_y"], label="Slipping (unfused) odometry",
               linestyle="--", color="red", alpha=0.7)
@@ -35,9 +34,6 @@ def make_trajectory_plot(result, out_path="output/trajectory_plot.png"):
     ax1.grid(True, alpha=0.3)
     ax1.axis("equal")
 
-    # X-position over time -- this is where the slip error and EKF correction
-    # are actually visible, since the robot travels along X and slip causes
-    # it to fall behind in X, not drift sideways in Y.
     ax2.plot(data["t"], data["x_true"], label="Ground truth", linewidth=2, color="black")
     ax2.plot(data["t"], result["raw_x"], label="Slipping (unfused) odometry",
               linestyle="--", color="red", alpha=0.8)
@@ -56,8 +52,14 @@ def make_trajectory_plot(result, out_path="output/trajectory_plot.png"):
 
 
 def make_run_log(result, out_path="output/run_log.txt"):
+    """
+    Logs the full timestamped state covariance MATRICES (3x3, per the
+    deliverable spec -- not just a summary trace), plus scan-matching
+    information matrices, degeneracy warnings, and ghost-clear events.
+    """
     data = result["data"]
     P_hist = result["P_hist"]
+    info = result["info"]
     warnings = result["warnings"]
 
     with open(out_path, "w") as f:
@@ -65,13 +67,25 @@ def make_run_log(result, out_path="output/run_log.txt"):
         f.write("Simulation substitutes a Python-only kinematic model for Gazebo\n")
         f.write("(see README for rationale). All math implemented per spec.\n\n")
 
-        f.write("--- Pose covariance trace (subsampled every 2s) ---\n")
+        f.write("--- Timestamped state (pose) covariance matrices, subsampled every 2s ---\n")
+        f.write("State vector: [x, y, theta]\n\n")
         for i in range(0, len(data["t"]), 40):  # every ~2s at dt=0.05
-            trace = np.trace(P_hist[i][:2, :2])
-            f.write(f"t={data['t'][i]:6.2f}s  cov_trace={trace:.5f}\n")
+            P = P_hist[i]
+            f.write(f"t={data['t'][i]:6.2f}s\n")
+            for row in P:
+                f.write("  [ " + "  ".join(f"{v: .6f}" for v in row) + " ]\n")
+            f.write("\n")
 
-        f.write(f"\n--- Degeneracy warnings ({len(warnings)} total) ---\n")
-        for t, eig, axis in warnings[::20]:  # subsample for readability
+        f.write("--- Timestamped scan-matching Information matrices, subsampled every 2s ---\n")
+        for i in range(0, len(data["t"]), 40):
+            I = info[i]
+            f.write(f"t={data['t'][i]:6.2f}s\n")
+            for row in I:
+                f.write("  [ " + "  ".join(f"{v: .4f}" for v in row) + " ]\n")
+            f.write("\n")
+
+        f.write(f"--- Degeneracy warnings ({len(warnings)} total) ---\n")
+        for t, eig, axis in warnings[::20]:
             f.write(f"t={t:6.2f}s  LOCALIZATION_DEGENERACY_WARNING axis={axis} eig={eig:.4f}\n")
 
         f.write(f"\n--- Ghost-obstacle clear events ({len(result['grid'].clear_events)} total) ---\n")
