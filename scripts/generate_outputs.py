@@ -20,19 +20,35 @@ def make_trajectory_plot(result, out_path="output/trajectory_plot.png"):
     data = result["data"]
     x_est = result["x_est"]
 
-    plt.figure(figsize=(10, 5))
-    plt.plot(data["x_true"], data["y_true"], label="Ground truth", linewidth=2, color="black")
-    plt.plot(result["raw_x"], result["raw_y"], label="Slipping (unfused) odometry",
-              linestyle="--", color="red", alpha=0.7)
-    plt.plot(x_est[:, 0], x_est[:, 1], label="Fused EKF estimate",
-              linestyle="-", color="blue", alpha=0.8)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
-    plt.xlabel("X position (m)")
-    plt.ylabel("Y position (m)")
-    plt.title("Trajectory: Ground Truth vs Slipping Odometry vs Fused Estimate")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.axis("equal")
+    # Top-down X-Y view (kept for completeness, but the real story is in ax2)
+    ax1.plot(data["x_true"], data["y_true"], label="Ground truth", linewidth=2, color="black")
+    ax1.plot(result["raw_x"], result["raw_y"], label="Slipping (unfused) odometry",
+              linestyle="--", color="red", alpha=0.7)
+    ax1.plot(x_est[:, 0], x_est[:, 1], label="Fused EKF estimate",
+              linestyle="-", color="blue", alpha=0.8)
+    ax1.set_xlabel("X position (m)")
+    ax1.set_ylabel("Y position (m)")
+    ax1.set_title("Top-down view (X-Y)")
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    ax1.axis("equal")
+
+    # X-position over time -- this is where the slip error and EKF correction
+    # are actually visible, since the robot travels along X and slip causes
+    # it to fall behind in X, not drift sideways in Y.
+    ax2.plot(data["t"], data["x_true"], label="Ground truth", linewidth=2, color="black")
+    ax2.plot(data["t"], result["raw_x"], label="Slipping (unfused) odometry",
+              linestyle="--", color="red", alpha=0.8)
+    ax2.plot(data["t"], x_est[:, 0], label="Fused EKF estimate",
+              linestyle="-", color="blue", alpha=0.8)
+    ax2.set_xlabel("Time (s)")
+    ax2.set_ylabel("X position (m)")
+    ax2.set_title("X position vs time -- shows slip error and EKF correction")
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+
     plt.tight_layout()
     plt.savefig(out_path, dpi=150)
     plt.close()
