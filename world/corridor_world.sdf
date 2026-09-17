@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<!--
+  corridor_world.sdf
+
+  DESIGN/REFERENCE ARTIFACT -- not executed in this submission (Python-only
+  fallback used instead, see README). This world specifies exactly the
+  environment the assignment requires and that the Python simulation's
+  parameters model: a 20m featureless corridor with a wall panel that shifts
+  +/-1.5m every 15s. The shift would be driven by a Gazebo timer node calling
+  SetEntityState on wall_panel every 15s in a real deployment.
+-->
+<sdf version="1.8">
+  <world name="degenerate_corridor">
+
+    <model name="wall_north">
+      <static>true</static>
+      <pose>10 2 1 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>20 0.2 2</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>20 0.2 2</size></box></geometry></visual>
+      </link>
+    </model>
+
+    <model name="wall_south">
+      <static>true</static>
+      <pose>10 -2 1 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>20 0.2 2</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>20 0.2 2</size></box></geometry></visual>
+      </link>
+    </model>
+
+    <model name="wall_panel">
+      <static>false</static>
+      <pose>10 0 1 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.8 1.0 2</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.8 1.0 2</size></box></geometry></visual>
+      </link>
+    </model>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision"><geometry><plane><normal>0 0 1</normal><size>25 6</size></plane></geometry></collision>
+        <visual name="visual"><geometry><plane><normal>0 0 1</normal><size>25 6</size></plane></geometry></visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>
